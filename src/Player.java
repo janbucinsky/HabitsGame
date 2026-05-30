@@ -1,4 +1,6 @@
 public class Player {
+    private static final int GOLD_PER_LEVEL_UP = 50;
+
     private int level = 1;
     private int xp = 0;
     private int gold = 0;
@@ -10,6 +12,7 @@ public class Player {
         while (level < 30 && xp >= level * 100) {
             xp -= level * 100;
             level++;
+            gold += GOLD_PER_LEVEL_UP;
         }
     }
 
