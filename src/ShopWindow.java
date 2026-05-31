@@ -26,44 +26,50 @@ public class ShopWindow {
     }
 
     private void setupUi() {
-        frame.setSize(520, 480);
+        frame.setSize(540, 500);
         frame.setLocationRelativeTo(null);
-        frame.setLayout(new BorderLayout(10, 10));
+        frame.setLayout(new BorderLayout());
+        UiTheme.applyToFrame(frame);
 
-        JPanel contentPanel = new JPanel();
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        JPanel contentPanel = UiTheme.createCardPanel(null);
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
 
-        JLabel titleLabel = new JLabel("Předměty pro souboje");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        JLabel titleLabel = UiTheme.createTitleLabel("Předměty pro souboje");
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         contentPanel.add(titleLabel);
-        contentPanel.add(Box.createVerticalStrut(8));
+        contentPanel.add(Box.createVerticalStrut(10));
 
         refreshGoldLabel();
+        goldLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         goldLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        goldLabel.setForeground(UiTheme.TEXT);
         contentPanel.add(goldLabel);
         contentPanel.add(Box.createVerticalStrut(6));
 
         refreshTotalStatsLabel();
-        totalStatsLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        totalStatsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        totalStatsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        totalStatsLabel.setForeground(UiTheme.TEXT_MUTED);
         contentPanel.add(totalStatsLabel);
-        contentPanel.add(Box.createVerticalStrut(10));
+        contentPanel.add(Box.createVerticalStrut(12));
 
         JList<ShopItem> itemList = new JList<>(shopItemModel);
         itemList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         itemList.setVisibleRowCount(8);
+        UiTheme.styleList(itemList);
         itemList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
-            JLabel label = new JLabel();
+            JLabel label = new JLabel("  " + value.getName() + " (" + value.getPrice() + " goldů)");
             label.setOpaque(true);
             label.setFont(list.getFont());
-            label.setBackground(isSelected ? list.getSelectionBackground() : list.getBackground());
-            label.setForeground(isSelected ? list.getSelectionForeground() : list.getForeground());
-            label.setText(value.getName() + " (" + value.getPrice() + " goldů)");
+            label.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
+            UiTheme.applyListCellStyle(label, isSelected);
             return label;
         });
         JLabel statsLabel = new JLabel(" ");
-        statsLabel.setBorder(BorderFactory.createEmptyBorder(4, 0, 0, 0));
-        statsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        statsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        statsLabel.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 0));
+        statsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        statsLabel.setForeground(UiTheme.TEXT_MUTED);
         itemList.addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) {
                 return;
@@ -77,22 +83,33 @@ public class ShopWindow {
             itemList.setSelectedIndex(0);
         }
 
-        contentPanel.add(new JScrollPane(itemList));
+        JScrollPane itemScrollPane = UiTheme.wrapList(itemList);
+        itemScrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
+        itemScrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
+        contentPanel.add(itemScrollPane);
         contentPanel.add(statsLabel);
-        contentPanel.add(Box.createVerticalStrut(10));
+        contentPanel.add(Box.createVerticalStrut(12));
 
         JButton buyButton = new JButton("Koupit");
+        UiTheme.stylePrimaryButton(buyButton);
+        buyButton.setAlignmentX(Component.LEFT_ALIGNMENT);
         buyButton.addActionListener(e -> buySelectedItem(itemList));
         contentPanel.add(buyButton);
-        contentPanel.add(Box.createVerticalStrut(12));
+        contentPanel.add(Box.createVerticalStrut(14));
 
         inventoryLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         refreshInventoryLabel();
-        contentPanel.add(new JLabel("Tvůj inventář:"));
+        inventoryLabel.setForeground(UiTheme.TEXT);
+        inventoryLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        contentPanel.add(UiTheme.createSectionLabel("Tvůj inventář:"));
         contentPanel.add(Box.createVerticalStrut(4));
         contentPanel.add(inventoryLabel);
 
-        frame.add(contentPanel, BorderLayout.CENTER);
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        wrapper.add(contentPanel, BorderLayout.CENTER);
+        frame.add(wrapper, BorderLayout.CENTER);
     }
 
     private void buySelectedItem(JList<ShopItem> itemList) {

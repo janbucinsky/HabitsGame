@@ -16,6 +16,8 @@ public class GameSaveData implements Serializable {
     private List<CustomActivityData> customActivities;
     private Map<String, Integer> dailyProgress;
     private String progressDate;
+    private int arenaGamesToday;
+    private String arenaGamesDate;
 
     public GameSaveData(
             int level,
@@ -25,7 +27,9 @@ public class GameSaveData implements Serializable {
             List<String> activeActivities,
             List<CustomActivityData> customActivities,
             Map<String, Integer> dailyProgress,
-            String progressDate
+            String progressDate,
+            int arenaGamesToday,
+            String arenaGamesDate
     ) {
         this.level = level;
         this.xp = xp;
@@ -35,6 +39,8 @@ public class GameSaveData implements Serializable {
         this.customActivities = new ArrayList<>(customActivities);
         this.dailyProgress = new HashMap<>(dailyProgress);
         this.progressDate = progressDate;
+        this.arenaGamesToday = arenaGamesToday;
+        this.arenaGamesDate = arenaGamesDate;
     }
 
     public int getLevel() {
@@ -67,6 +73,14 @@ public class GameSaveData implements Serializable {
 
     public String getProgressDate() {
         return progressDate;
+    }
+
+    public int getArenaGamesToday() {
+        return arenaGamesToday;
+    }
+
+    public String getArenaGamesDate() {
+        return arenaGamesDate;
     }
 }
 //konec ukládání

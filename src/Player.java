@@ -24,6 +24,26 @@ public class Player {
         }
     }
 
+    public void removeXp(int amount) {
+        if (amount <= 0) {
+            return;
+        }
+        xp = Math.max(0, xp - amount);
+    }
+
+    public void addGold(int amount) {
+        if (amount > 0) {
+            gold += amount;
+        }
+    }
+
+    public void removeGold(int amount) {
+        if (amount <= 0) {
+            return;
+        }
+        gold = Math.max(0, gold - amount);
+    }
+
     public int getLevel() {
         return level;
     }

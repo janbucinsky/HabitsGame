@@ -19,6 +19,8 @@ public class MainWindow {
     private final Map<String, ActivitySettings> activitySettingsMap;
     private final Map<String, Integer> dailyProgressMap;
     private LocalDate progressDate;
+    private int arenaGamesToday;
+    private LocalDate arenaGamesDate;
 
     private JLabel rankLabel;
     private JLabel levelLabel;
@@ -37,6 +39,8 @@ public class MainWindow {
         this.activitySettingsMap = new HashMap<>();
         this.dailyProgressMap = new HashMap<>();
         this.progressDate = LocalDate.now();
+        this.arenaGamesToday = 0;
+        this.arenaGamesDate = LocalDate.now();
         initPredefinedActivitySettings();
         activityModel.addElement("Pití vody");
         setupUi();
@@ -51,49 +55,42 @@ public class MainWindow {
 
     private void setupUi() {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(760, 580);
+        frame.setSize(760, 600);
         frame.setLocationRelativeTo(null);
-        frame.setLayout(new BorderLayout());
+        frame.setLayout(new BorderLayout(12, 12));
+        UiTheme.applyToFrame(frame);
 
-        JPanel topPanel = new JPanel();
-        topPanel.setLayout(new GridLayout(1, 4, 20, 0));
-        topPanel.setBorder(BorderFactory.createEmptyBorder(12, 10, 6, 10));
-        topPanel.setPreferredSize(new Dimension(760, 70));
-        rankLabel = new JLabel("Rank: " + player.getRank(), SwingConstants.LEFT);
-        rankLabel.setFont(new Font("Arial", Font.BOLD, 17));
-        levelLabel = new JLabel("Level: " + player.getLevel(), SwingConstants.CENTER);
-        xpLabel = new JLabel("XP: " + player.getXp(), SwingConstants.CENTER);
-        goldLabel = new JLabel("Gold: " + player.getGold(), SwingConstants.CENTER);
-        rankLabel.setFont(new Font("Dialog", Font.BOLD, 17));
-        levelLabel.setFont(new Font("Segoe UI", Font.BOLD, 17));
-        xpLabel.setFont(new Font("Segoe UI", Font.BOLD, 17));
-        goldLabel.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        JPanel topPanel = UiTheme.createCardPanel(new GridLayout(1, 4, 16, 0));
+        topPanel.setPreferredSize(new Dimension(760, 72));
+        rankLabel = UiTheme.createStatLabel("Rank: " + player.getRank(), SwingConstants.LEFT);
+        levelLabel = UiTheme.createStatLabel("Level: " + player.getLevel(), SwingConstants.CENTER);
+        xpLabel = UiTheme.createStatLabel("XP: " + player.getXp(), SwingConstants.CENTER);
+        goldLabel = UiTheme.createStatLabel("Gold: " + player.getGold(), SwingConstants.CENTER);
         rankLabel.setToolTipText("Rank: " + player.getRank());
-        rankLabel.setVerticalAlignment(SwingConstants.CENTER);
-        levelLabel.setVerticalAlignment(SwingConstants.CENTER);
-        xpLabel.setVerticalAlignment(SwingConstants.CENTER);
-        goldLabel.setVerticalAlignment(SwingConstants.CENTER);
         topPanel.add(rankLabel);
         topPanel.add(levelLabel);
         topPanel.add(xpLabel);
         topPanel.add(goldLabel);
 
-        JPanel middlePanel = new JPanel(new BorderLayout(10, 10));
-        middlePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        JPanel middlePanel = UiTheme.createCardPanel(new BorderLayout(10, 10));
         questLabel = new JLabel("Aktuální aktivita: Pití vody");
+        questLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        questLabel.setForeground(UiTheme.TEXT);
         activityRuleLabel = new JLabel();
+        activityRuleLabel.setForeground(UiTheme.TEXT_MUTED);
         dailyProgressLabel = new JLabel();
-        JLabel chooseQuestLabel = new JLabel("Vyber aktivitu k plnění:");
+        dailyProgressLabel.setForeground(UiTheme.TEXT_MUTED);
+        JLabel chooseQuestLabel = UiTheme.createSectionLabel("Vyber aktivitu k plnění:");
         questList = new JList<>(activityModel);
         questList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         questList.setVisibleRowCount(8);
+        UiTheme.styleList(questList);
         questList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
-            JLabel label = new JLabel();
+            JLabel label = new JLabel("  " + formatActivityDisplay(value));
             label.setOpaque(true);
             label.setFont(list.getFont());
-            label.setBackground(isSelected ? list.getSelectionBackground() : list.getBackground());
-            label.setForeground(isSelected ? list.getSelectionForeground() : list.getForeground());
-            label.setText(formatActivityDisplay(value));
+            label.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
+            UiTheme.applyListCellStyle(label, isSelected);
             return label;
         });
         questList.setSelectedIndex(0);
@@ -107,10 +104,11 @@ public class MainWindow {
                 updateActivityInfo(selectedQuest, activityRuleLabel, dailyProgressLabel);
             }
         });
-        JScrollPane questListScrollPane = new JScrollPane(questList);
+        JScrollPane questListScrollPane = UiTheme.wrapList(questList);
         updateActivityInfo("Pití vody", activityRuleLabel, dailyProgressLabel);
 
         JButton manageActivitiesButton = new JButton("Správa aktivit");
+        UiTheme.styleSecondaryButton(manageActivitiesButton);
         manageActivitiesButton.addActionListener(e -> {
             ActivitySelectionWindow activitySelectionWindow = new ActivitySelectionWindow(
                     activityModel,
@@ -121,7 +119,8 @@ public class MainWindow {
         });
 
         //dodelat omezeni jednou za 24 hodin
-        JButton addXpButton = new JButton("Úkol splněn + 30xp");
+        JButton addXpButton = new JButton("Úkol splněn + 30 XP");
+        UiTheme.stylePrimaryButton(addXpButton);
         addXpButton.addActionListener((ActionEvent e) -> {
             String selectedQuest = questList.getSelectedValue();
             if (selectedQuest != null) {
@@ -160,40 +159,54 @@ public class MainWindow {
         });
 
         JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        headerPanel.setOpaque(false);
         headerPanel.add(chooseQuestLabel);
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        actionPanel.setOpaque(false);
         actionPanel.add(questLabel);
         actionPanel.add(addXpButton);
 
         JPanel infoPanel = new JPanel();
+        infoPanel.setOpaque(false);
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         infoPanel.add(activityRuleLabel);
         infoPanel.add(Box.createVerticalStrut(4));
         infoPanel.add(dailyProgressLabel);
 
-        JPanel bottomPanel = new JPanel(new BorderLayout());
+        JPanel bottomPanel = new JPanel(new BorderLayout(8, 8));
+        bottomPanel.setOpaque(false);
         bottomPanel.add(infoPanel, BorderLayout.NORTH);
         bottomPanel.add(actionPanel, BorderLayout.WEST);
         bottomPanel.add(manageActivitiesButton, BorderLayout.EAST);
 
         JButton shopButton = new JButton("Obchod");
+        UiTheme.styleSecondaryButton(shopButton);
         shopButton.addActionListener(e -> {
             ShopWindow shopWindow = new ShopWindow(player, () -> goldLabel.setText("Gold: " + player.getGold()));
             shopWindow.showWindow();
         });
 
-        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 8));
-        footerPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
+        JButton arenaButton = new JButton("Aréna");
+        UiTheme.styleSecondaryButton(arenaButton);
+        arenaButton.addActionListener(e -> openArena());
+
+        JPanel footerPanel = UiTheme.createCardPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
         footerPanel.add(shopButton);
+        footerPanel.add(arenaButton);
+
+        JPanel wrapper = new JPanel(new BorderLayout(12, 12));
+        wrapper.setOpaque(false);
+        wrapper.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        wrapper.add(topPanel, BorderLayout.NORTH);
+        wrapper.add(middlePanel, BorderLayout.CENTER);
+        wrapper.add(footerPanel, BorderLayout.SOUTH);
 
         middlePanel.add(headerPanel, BorderLayout.NORTH);
         middlePanel.add(questListScrollPane, BorderLayout.CENTER);
         middlePanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        frame.add(topPanel, BorderLayout.NORTH);
-        frame.add(middlePanel, BorderLayout.CENTER);
-        frame.add(footerPanel, BorderLayout.SOUTH);
+        frame.add(wrapper, BorderLayout.CENTER);
 
         //ukládání
         frame.addWindowListener(new WindowAdapter() {
@@ -203,6 +216,44 @@ public class MainWindow {
             }
         });
         //konec ukládání
+    }
+
+    private void openArena() {
+        int remainingGames = consumeArenaGame();
+        if (remainingGames < 0) {
+            JOptionPane.showMessageDialog(
+                    frame,
+                    "Dnes už jsi odehrál maximálně 10 her v aréně.",
+                    "Denní limit arény",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            return;
+        }
+
+        ArenaWindow arenaWindow = new ArenaWindow(
+                player,
+                this::refreshPlayerLabels,
+                remainingGames,
+                this::consumeArenaGame
+        );
+        arenaWindow.showWindow();
+    }
+
+    private int consumeArenaGame() {
+        resetArenaGamesIfNeeded();
+        if (arenaGamesToday >= 10) {
+            return -1;
+        }
+        arenaGamesToday++;
+        return 10 - arenaGamesToday;
+    }
+
+    private void resetArenaGamesIfNeeded() {
+        LocalDate today = LocalDate.now();
+        if (!today.equals(arenaGamesDate)) {
+            arenaGamesToday = 0;
+            arenaGamesDate = today;
+        }
     }
 
     //ukládání
@@ -233,7 +284,9 @@ public class MainWindow {
                 activeActivities,
                 customActivities,
                 new HashMap<>(dailyProgressMap),
-                progressDate.toString()
+                progressDate.toString(),
+                arenaGamesToday,
+                arenaGamesDate.toString()
         );
     }
 
@@ -280,6 +333,14 @@ public class MainWindow {
             progressDate = LocalDate.now();
         }
         resetDailyProgressIfNeeded();
+
+        arenaGamesToday = save.getArenaGamesToday();
+        try {
+            arenaGamesDate = LocalDate.parse(save.getArenaGamesDate());
+        } catch (Exception e) {
+            arenaGamesDate = LocalDate.now();
+        }
+        resetArenaGamesIfNeeded();
 
         refreshPlayerLabels();
         if (questList != null && activityModel.getSize() > 0) {
