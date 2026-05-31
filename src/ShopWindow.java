@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
 
+// Okno obchodu
 public class ShopWindow {
     private final Player player;
     private final Runnable onGoldChanged;
@@ -25,6 +26,7 @@ public class ShopWindow {
         setupUi();
     }
 
+    // Okno obchodu
     private void setupUi() {
         frame.setSize(540, 500);
         frame.setLocationRelativeTo(null);
@@ -41,7 +43,7 @@ public class ShopWindow {
 
         refreshGoldLabel();
         goldLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        goldLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        goldLabel.setFont(UiTheme.emojiCapableFont(Font.BOLD, 14));
         goldLabel.setForeground(UiTheme.TEXT);
         contentPanel.add(goldLabel);
         contentPanel.add(Box.createVerticalStrut(6));
@@ -58,9 +60,8 @@ public class ShopWindow {
         itemList.setVisibleRowCount(8);
         UiTheme.styleList(itemList);
         itemList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
-            JLabel label = new JLabel("  " + value.getName() + " (" + value.getPrice() + " goldů)");
+            JLabel label = new JLabel(UiTheme.htmlText("  " + value.getName() + " (" + value.getPrice() + " goldů)"));
             label.setOpaque(true);
-            label.setFont(list.getFont());
             label.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
             UiTheme.applyListCellStyle(label, isSelected);
             return label;
@@ -112,6 +113,7 @@ public class ShopWindow {
         frame.add(wrapper, BorderLayout.CENTER);
     }
 
+    // Koupi vybraný předmět
     private void buySelectedItem(JList<ShopItem> itemList) {
         ShopItem selected = itemList.getSelectedValue();
         if (selected == null) {
@@ -150,14 +152,17 @@ public class ShopWindow {
         );
     }
 
+    // Aktualizuje pocet goldu
     private void refreshGoldLabel() {
-        goldLabel.setText("Tvoje goldy: " + player.getGold());
+        goldLabel.setText(UiTheme.formatOwnedGoldLabel(player.getGold()));
     }
 
+    //Aktualizuje text se staty.
     private void refreshTotalStatsLabel() {
         totalStatsLabel.setText(player.getTotalStatsText());
     }
 
+    // Aktualizuje inventar 
     private void refreshInventoryLabel() {
         String inventoryText = player.getInventoryDisplay();
         if (inventoryText.isEmpty()) {

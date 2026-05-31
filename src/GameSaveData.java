@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// Všechna data hry pro uložení do souboru.
 public class GameSaveData implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -19,6 +20,7 @@ public class GameSaveData implements Serializable {
     private int arenaGamesToday;
     private String arenaGamesDate;
 
+    // Uloží kompletní stav hry.
     public GameSaveData(
             int level,
             int xp,
@@ -59,26 +61,32 @@ public class GameSaveData implements Serializable {
         return inventory;
     }
 
+    // Vrátí seznam aktivit v hlavním okně.
     public List<String> getActiveActivities() {
         return activeActivities;
     }
 
+    // Vrátí vlastní aktivity hráče.
     public List<CustomActivityData> getCustomActivities() {
         return customActivities;
     }
 
+    // Vrátí kolikrát dnes byly aktivity splněny.
     public Map<String, Integer> getDailyProgress() {
         return dailyProgress;
     }
 
+    // Vrátí datum posledního denního progressu.
     public String getProgressDate() {
         return progressDate;
     }
 
+    // Vrátí kolik her v aréně hráč dnes odehrál.
     public int getArenaGamesToday() {
         return arenaGamesToday;
     }
 
+    // Vrátí datum poslední hry v aréně.
     public String getArenaGamesDate() {
         return arenaGamesDate;
     }

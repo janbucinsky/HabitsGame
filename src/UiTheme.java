@@ -5,6 +5,7 @@ import javax.swing.plaf.basic.BasicButtonUI;
 import java.awt.*;
 import java.util.Enumeration;
 
+// Společný vzhled aplikace – barvy, tlačítka, seznamy.
 public class UiTheme {
     public static final Color BACKGROUND = new Color(245, 247, 250);
     public static final Color CARD = Color.WHITE;
@@ -17,10 +18,29 @@ public class UiTheme {
     public static final Color LIST_SELECTED_TEXT = Color.WHITE;
     public static final Color LIST_ACTIVE = new Color(214, 232, 255);
     public static final Color LOG_BACKGROUND = new Color(248, 250, 252);
+    public static final String CHECK_MARK = "\u2714 ";
+    public static final String GOLD_EMOJI = "\uD83D\uDCB0";
+    private static final String FONT_STACK = "Segoe UI Emoji, Segoe UI Symbol, Segoe UI, sans-serif";
 
     private UiTheme() {
     }
 
+    // Text s podporou emoji a fajfek (pro JLabel).
+    public static String htmlText(String text) {
+        return "<html><span style='font-family:" + FONT_STACK + "'>" + escapeHtml(text) + "</span></html>";
+    }
+
+    // Rank na jednom řádku
+    public static String htmlRankLabel(String rank) {
+        return "<html><nobr><span style='font-family:" + FONT_STACK + "; font-size:12px'>Rank: <b>"
+                + escapeHtml(rank) + "</b></span></nobr></html>";
+    }
+
+    private static String escapeHtml(String text) {
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    //Nastaví zhled při startu aplikace.
     public static void apply() {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -40,6 +60,7 @@ public class UiTheme {
         UIManager.put("ScrollPane.background", CARD);
     }
 
+    // Nastaví pozadí okna
     public static void applyToFrame(JFrame frame) {
         frame.getContentPane().setBackground(BACKGROUND);
     }
@@ -59,6 +80,7 @@ public class UiTheme {
         );
     }
 
+    // Velký nadpis okna
     public static JLabel createTitleLabel(String text) {
         JLabel label = new JLabel(text);
         label.setFont(new Font("Segoe UI", Font.BOLD, 18));
@@ -66,6 +88,7 @@ public class UiTheme {
         return label;
     }
 
+    //Vytvori menší popisek
     public static JLabel createSectionLabel(String text) {
         JLabel label = new JLabel(text);
         label.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -73,15 +96,31 @@ public class UiTheme {
         return label;
     }
 
+    // statistiky nahoře v hlavním okně
     public static JLabel createStatLabel(String text, int alignment) {
         JLabel label = new JLabel(text, alignment);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        label.setFont(emojiCapableFont(Font.BOLD, 17));
         label.setForeground(TEXT);
-
         label.setOpaque(false);
         return label;
     }
 
+    // Font s fallbackem pro emoji a fajfky (logický font, ne fyzický Segoe UI).
+    public static Font emojiCapableFont(int style, int size) {
+        return new Font(Font.DIALOG, style, size);
+    }
+
+    // Text goldu s emoji (💰 má lepší podporu než 🪙 ve Windows fontech).
+    public static String formatGoldLabel(int gold) {
+        return "Gold " + GOLD_EMOJI + ":\u00A0" + gold;
+    }
+
+    // stejny gold text ale pro obchod
+    public static String formatOwnedGoldLabel(int gold) {
+        return "Tvoje goldy " + GOLD_EMOJI + ":\u00A0" + gold;
+    }
+
+    // Nastyguje modré hlavní tlačítko.
     public static void stylePrimaryButton(JButton button) {
         button.setUI(new BasicButtonUI());
         button.setFocusPainted(false);
@@ -95,6 +134,7 @@ public class UiTheme {
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
+    // tlacitka
     public static void styleSecondaryButton(JButton button) {
         button.setUI(new BasicButtonUI());
         button.setFocusPainted(false);
@@ -111,6 +151,7 @@ public class UiTheme {
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
+    // seznam aktivit nebo predmetu
     public static void styleList(JList<?> list) {
         list.setBackground(CARD);
         list.setForeground(TEXT);
@@ -120,11 +161,12 @@ public class UiTheme {
         list.setBorder(BorderFactory.createLineBorder(BORDER));
     }
 
+    // Zmena barvy vybranych radku
     public static void applyListCellStyle(JLabel label, boolean selected) {
+        label.setOpaque(true);
         if (selected) {
             label.setBackground(LIST_SELECTED);
             label.setForeground(LIST_SELECTED_TEXT);
-            label.setFont(label.getFont().deriveFont(Font.BOLD));
         } else {
             label.setBackground(CARD);
             label.setForeground(TEXT);
@@ -132,18 +174,20 @@ public class UiTheme {
     }
 
     public static void applyListCellStyle(JLabel label, boolean selected, boolean activeInGame) {
+        label.setOpaque(true);
         if (selected) {
-            applyListCellStyle(label, true);
+            label.setBackground(LIST_SELECTED);
+            label.setForeground(LIST_SELECTED_TEXT);
         } else if (activeInGame) {
             label.setBackground(LIST_ACTIVE);
             label.setForeground(TEXT);
-            label.setFont(label.getFont().deriveFont(Font.BOLD));
         } else {
             label.setBackground(CARD);
             label.setForeground(TEXT);
         }
     }
 
+    // scroll pane.
     public static JScrollPane wrapList(JList<?> list) {
         JScrollPane scrollPane = new JScrollPane(list);
         scrollPane.setBorder(BorderFactory.createLineBorder(BORDER));
@@ -151,6 +195,7 @@ public class UiTheme {
         return scrollPane;
     }
 
+    // panel pro souboj
     public static JPanel createLogPanel(JLabel logLabel) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(LOG_BACKGROUND);
@@ -165,11 +210,16 @@ public class UiTheme {
         return panel;
     }
 
+    //Nastaví stejný font (kromě Label/List – tam necháme fallback pro emoji).
     private static void setGlobalFont(Font font) {
         FontUIResource fontResource = new FontUIResource(font);
         Enumeration<Object> keys = UIManager.getDefaults().keys();
         while (keys.hasMoreElements()) {
             Object key = keys.nextElement();
+            if (key instanceof String keyName
+                    && (keyName.endsWith("Label.font") || keyName.endsWith("List.font") || keyName.endsWith("ComboBox.font"))) {
+                continue;
+            }
             Object value = UIManager.get(key);
             if (value instanceof FontUIResource) {
                 UIManager.put(key, fontResource);

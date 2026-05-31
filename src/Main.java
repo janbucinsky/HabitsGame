@@ -1,4 +1,6 @@
+// Vstupní bod aplikace – spustí hru.
 public class Main {
+    // Spustí aplikaci, načte uloženou hru a zobrazí hlavní okno.
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> {
             UiTheme.apply();

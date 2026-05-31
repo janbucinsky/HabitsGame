@@ -1,3 +1,4 @@
+// Předmět v obchodě – cena a bojové bonusy.
 public class ShopItem {
     private final String name;
     private final int price;
@@ -19,6 +20,7 @@ public class ShopItem {
             new ShopItem("Bojová přilba", 95, 0, 2, 12)
     };
 
+    // Vytvoří předmět s danou cenou a bonusy.
     public ShopItem(String name, int price, int damageBonus, int defenseBonus, int hpBonus) {
         this.name = name;
         this.price = price;
@@ -27,26 +29,32 @@ public class ShopItem {
         this.hpBonus = hpBonus;
     }
 
+    // Vrátí název předmětu.
     public String getName() {
         return name;
     }
 
+    // Vrátí cenu v goldu.
     public int getPrice() {
         return price;
     }
 
+    // Vrátí bonus k útoku.
     public int getDamageBonus() {
         return damageBonus;
     }
 
+    // Vrátí bonus k obraně.
     public int getDefenseBonus() {
         return defenseBonus;
     }
 
+    // Vrátí bonus k HP.
     public int getHpBonus() {
         return hpBonus;
     }
 
+    // Vrátí text s bonusy předmětu.
     public String getStatsText() {
         StringBuilder stats = new StringBuilder();
         if (damageBonus > 0) {
@@ -70,10 +78,12 @@ public class ShopItem {
         return stats.toString();
     }
 
+    // Vrátí seznam všech předmětů v obchodě.
     public static ShopItem[] getCatalog() {
         return CATALOG;
     }
 
+    // Najde předmět podle názvu, nebo vrátí null.
     public static ShopItem findByName(String name) {
         for (ShopItem item : CATALOG) {
             if (item.name.equalsIgnoreCase(name)) {
@@ -83,6 +93,7 @@ public class ShopItem {
         return null;
     }
 
+    // Vrátí název a cenu jako text.
     @Override
     public String toString() {
         return name + " - " + price + " gold";

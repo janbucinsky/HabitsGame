@@ -11,6 +11,7 @@ import java.util.List;
 //konec ukládání
 import java.util.Map;
 
+//hlavní okno hry
 public class MainWindow {
     private final Player player;
     private final JFrame frame;
@@ -30,6 +31,7 @@ public class MainWindow {
     private JLabel activityRuleLabel;
     private JLabel dailyProgressLabel;
     private JList<String> questList;
+    private JButton addXpButton;
 
     public MainWindow(Player player) {
         this.player = player;
@@ -46,13 +48,20 @@ public class MainWindow {
         setupUi();
     }
 
+    // nastaví výchozí aktivity
     private void initPredefinedActivitySettings() {
         activitySettingsMap.put("Pití vody", new ActivitySettings("1 litr", 5));
         activitySettingsMap.put("Čtení", new ActivitySettings("1 kapitola", 30));
         activitySettingsMap.put("Běhání", new ActivitySettings("1 km", 42));
         activitySettingsMap.put("Cvičení", new ActivitySettings("10 minut", 30));
+        activitySettingsMap.put("Meditace", new ActivitySettings("5 minut", 15));
+        activitySettingsMap.put("Procházka", new ActivitySettings("30 minut", 20));
+        activitySettingsMap.put("Studium", new ActivitySettings("5 minut", 50));
+        activitySettingsMap.put("Úklid", new ActivitySettings("1 místnost", 20));
+        activitySettingsMap.put("Spánek", new ActivitySettings("1 hodina", 12));
     }
 
+    // Sestaví a vykreslí celé hlavní okno.
     private void setupUi() {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(760, 600);
@@ -60,17 +69,31 @@ public class MainWindow {
         frame.setLayout(new BorderLayout(12, 12));
         UiTheme.applyToFrame(frame);
 
-        JPanel topPanel = UiTheme.createCardPanel(new GridLayout(1, 4, 16, 0));
-        topPanel.setPreferredSize(new Dimension(760, 72));
-        rankLabel = UiTheme.createStatLabel("Rank: " + player.getRank(), SwingConstants.LEFT);
+        JPanel topPanel = UiTheme.createCardPanel(new GridBagLayout());
+        topPanel.setPreferredSize(new Dimension(760, 80));
+        rankLabel = UiTheme.createStatLabel("", SwingConstants.LEFT);
         levelLabel = UiTheme.createStatLabel("Level: " + player.getLevel(), SwingConstants.CENTER);
         xpLabel = UiTheme.createStatLabel("XP: " + player.getXp(), SwingConstants.CENTER);
-        goldLabel = UiTheme.createStatLabel("Gold: " + player.getGold(), SwingConstants.CENTER);
-        rankLabel.setToolTipText("Rank: " + player.getRank());
-        topPanel.add(rankLabel);
-        topPanel.add(levelLabel);
-        topPanel.add(xpLabel);
-        topPanel.add(goldLabel);
+        goldLabel = UiTheme.createStatLabel(UiTheme.formatGoldLabel(player.getGold()), SwingConstants.CENTER);
+        updateRankLabel();
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 4, 0, 4);
+
+        gbc.gridx = 0;
+        gbc.weightx = 1.6;
+        topPanel.add(rankLabel, gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 0.8;
+        topPanel.add(levelLabel, gbc);
+        gbc.gridx = 2;
+        gbc.weightx = 0.8;
+        topPanel.add(xpLabel, gbc);
+        gbc.gridx = 3;
+        gbc.weightx = 0.8;
+        topPanel.add(goldLabel, gbc);
 
         JPanel middlePanel = UiTheme.createCardPanel(new BorderLayout(10, 10));
         questLabel = new JLabel("Aktuální aktivita: Pití vody");
@@ -87,8 +110,8 @@ public class MainWindow {
         UiTheme.styleList(questList);
         questList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
             JLabel label = new JLabel("  " + formatActivityDisplay(value));
+            label.setFont(UiTheme.emojiCapableFont(Font.PLAIN, 13));
             label.setOpaque(true);
-            label.setFont(list.getFont());
             label.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
             UiTheme.applyListCellStyle(label, isSelected);
             return label;
@@ -102,6 +125,7 @@ public class MainWindow {
             if (selectedQuest != null) {
                 questLabel.setText("Aktuální aktivita: " + formatActivityDisplay(selectedQuest));
                 updateActivityInfo(selectedQuest, activityRuleLabel, dailyProgressLabel);
+                updateAddXpButtonText(selectedQuest);
             }
         });
         JScrollPane questListScrollPane = UiTheme.wrapList(questList);
@@ -119,8 +143,9 @@ public class MainWindow {
         });
 
         //dodelat omezeni jednou za 24 hodin
-        JButton addXpButton = new JButton("Úkol splněn + 30 XP");
+        addXpButton = new JButton("Úkol splněn + 30 XP");
         UiTheme.stylePrimaryButton(addXpButton);
+        updateAddXpButtonText(questList.getSelectedValue());
         addXpButton.addActionListener((ActionEvent e) -> {
             String selectedQuest = questList.getSelectedValue();
             if (selectedQuest != null) {
@@ -151,11 +176,7 @@ public class MainWindow {
             } else {
                 player.addXp(30);
             }
-            rankLabel.setText("Rank: " + player.getRank());
-            rankLabel.setToolTipText("Rank: " + player.getRank());
-            levelLabel.setText("Level: " + player.getLevel());
-            xpLabel.setText("XP: " + player.getXp());
-            goldLabel.setText("Gold: " + player.getGold());
+            refreshPlayerLabels();
         });
 
         JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -183,7 +204,7 @@ public class MainWindow {
         JButton shopButton = new JButton("Obchod");
         UiTheme.styleSecondaryButton(shopButton);
         shopButton.addActionListener(e -> {
-            ShopWindow shopWindow = new ShopWindow(player, () -> goldLabel.setText("Gold: " + player.getGold()));
+            ShopWindow shopWindow = new ShopWindow(player, () -> goldLabel.setText(UiTheme.formatGoldLabel(player.getGold())));
             shopWindow.showWindow();
         });
 
@@ -191,9 +212,14 @@ public class MainWindow {
         UiTheme.styleSecondaryButton(arenaButton);
         arenaButton.addActionListener(e -> openArena());
 
+        JButton bossButton = new JButton("Bossové");
+        UiTheme.styleSecondaryButton(bossButton);
+        bossButton.addActionListener(e -> openBosses());
+
         JPanel footerPanel = UiTheme.createCardPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
         footerPanel.add(shopButton);
         footerPanel.add(arenaButton);
+        footerPanel.add(bossButton);
 
         JPanel wrapper = new JPanel(new BorderLayout(12, 12));
         wrapper.setOpaque(false);
@@ -218,6 +244,7 @@ public class MainWindow {
         //konec ukládání
     }
 
+    // otevře arénu
     private void openArena() {
         int remainingGames = consumeArenaGame();
         if (remainingGames < 0) {
@@ -239,6 +266,13 @@ public class MainWindow {
         arenaWindow.showWindow();
     }
 
+    // otevře souboje s bossy
+    private void openBosses() {
+        BossWindow bossWindow = new BossWindow(player, this::refreshPlayerLabels);
+        bossWindow.showWindow();
+    }
+
+    // Započítá jednu hru do limitu.
     private int consumeArenaGame() {
         resetArenaGamesIfNeeded();
         if (arenaGamesToday >= 10) {
@@ -248,6 +282,7 @@ public class MainWindow {
         return 10 - arenaGamesToday;
     }
 
+    // Resetuje počítadlo her v aréně o půlnoci.
     private void resetArenaGamesIfNeeded() {
         LocalDate today = LocalDate.now();
         if (!today.equals(arenaGamesDate)) {
@@ -257,6 +292,7 @@ public class MainWindow {
     }
 
     //ukládání
+    // sestaví data pro uložení hry.
     public GameSaveData collectSaveData() {
         List<String> activeActivities = new ArrayList<>();
         for (int i = 0; i < activityModel.getSize(); i++) {
@@ -290,6 +326,7 @@ public class MainWindow {
         );
     }
 
+    // načte uloženou hru.
     public void applySaveData(GameSaveData save) {
         if (save == null) {
             return;
@@ -349,10 +386,12 @@ public class MainWindow {
             if (selected != null) {
                 questLabel.setText("Aktuální aktivita: " + formatActivityDisplay(selected));
                 updateActivityInfo(selected, activityRuleLabel, dailyProgressLabel);
+                updateAddXpButtonText(selected);
             }
         }
     }
 
+    // True, pokud aktivita už je v seznamu.
     private boolean isActivityInModel(String activity) {
         for (int i = 0; i < activityModel.getSize(); i++) {
             if (activityModel.getElementAt(i).equalsIgnoreCase(activity)) {
@@ -362,21 +401,29 @@ public class MainWindow {
         return false;
     }
 
+    // Aktualizuje rank, level, XP a gold.
     private void refreshPlayerLabels() {
         if (rankLabel == null) {
             return;
         }
-        rankLabel.setText("Rank: " + player.getRank());
-        rankLabel.setToolTipText("Rank: " + player.getRank());
+        updateRankLabel();
         levelLabel.setText("Level: " + player.getLevel());
         xpLabel.setText("XP: " + player.getXp());
-        goldLabel.setText("Gold: " + player.getGold());
+        goldLabel.setText(UiTheme.formatGoldLabel(player.getGold()));
+    }
+
+    private void updateRankLabel() {
+        String rank = player.getRank();
+        rankLabel.setText("Rank: " + rank);
+        rankLabel.setToolTipText(rank);
     }
     //konec ukládání
 
     public void showWindow() {
         frame.setVisible(true);
     }
+
+    // Aktualizuje popisek aktivity a denní progress
 
     private void updateActivityInfo(String activityName, JLabel activityRuleLabel, JLabel dailyProgressLabel) {
         resetDailyProgressIfNeeded();
@@ -397,6 +444,7 @@ public class MainWindow {
         }
     }
 
+    // Resetuje o pulnmoci
     private void resetDailyProgressIfNeeded() {
         LocalDate today = LocalDate.now();
         if (!today.equals(progressDate)) {
@@ -405,6 +453,7 @@ public class MainWindow {
         }
     }
 
+    // Vráti text a jednotku
     private String formatActivityDisplay(String activityName) {
         ActivitySettings settings = activitySettingsMap.get(activityName);
         if (settings == null) {
@@ -413,10 +462,20 @@ public class MainWindow {
         return activityName + " - " + settings.getUnitLabel();
     }
 
+    // xp za aktivitu
     private int getXpRewardForActivity(String activityName) {
         if ("Běhání".equalsIgnoreCase(activityName)) {
             return 15;
         }
         return 30;
+    }
+
+    // zmeni text tlacitka podle aktivity (behání ma min xp)
+    private void updateAddXpButtonText(String activityName) {
+        if (addXpButton == null) {
+            return;
+        }
+        int xp = activityName != null ? getXpRewardForActivity(activityName) : 30;
+        addXpButton.setText("Úkol splněn + " + xp + " XP");
     }
 }

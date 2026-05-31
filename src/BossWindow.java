@@ -1,70 +1,74 @@
 import javax.swing.*;
 import java.awt.*;
-import java.util.function.IntSupplier;
 
-// Okno arény – souboj hráče s protivníkem.
-public class ArenaWindow {
-    private static final int WIN_GOLD = 25;
-    private static final int WIN_XP = 50;
+// okno s bossama, podobne jako arena ale tezsi
+public class BossWindow {
+    // velke odmeny za vyhru
+    private static final int[] BOSS_WIN_XP = {250, 600, 1200};
+    private static final int[] BOSS_WIN_GOLD = {150, 400, 800};
     private static final int LOSS_XP = 50;
     private static final int LOSS_GOLD = 20;
 
     private final Player player;
     private final Runnable onPlayerChanged;
-    private final IntSupplier consumeArenaGame;
     private final JFrame frame;
-    private Opponent opponent;
+    private final Opponent opponent;
     private final JLabel playerStatsLabel;
     private final JLabel opponentStatsLabel;
     private final JLabel battleLogLabel;
-    private final JLabel remainingGamesLabel;
     private final JLabel rulesLabel;
     private final JButton attackButton;
     private final JButton fightAgainButton;
+    private final JButton[] bossButtons;
 
+    private int selectedBoss = 1;
     private int playerCurrentHp;
     private final int playerMaxHp;
     private final int playerAttack;
     private final int playerDefense;
     private boolean battleFinished;
 
-    // Vytvoří arénu a začne první souboj.
-    public ArenaWindow(Player player, Runnable onPlayerChanged, int remainingGames, IntSupplier consumeArenaGame) {
+    // vytvori okno bossu a zacne prvni souboj
+    public BossWindow(Player player, Runnable onPlayerChanged) {
         this.player = player;
         this.onPlayerChanged = onPlayerChanged;
-        this.consumeArenaGame = consumeArenaGame;
-        this.frame = new JFrame("Aréna");
+        this.frame = new JFrame("Bossové");
         this.playerAttack = player.getTotalAttack();
         this.playerDefense = player.getTotalDefense();
         this.playerMaxHp = player.getTotalHp();
-
         this.opponent = new Opponent(playerAttack, playerDefense, playerMaxHp);
         this.playerStatsLabel = new JLabel();
         this.opponentStatsLabel = new JLabel();
         this.battleLogLabel = new JLabel(" ");
-
-        this.remainingGamesLabel = new JLabel("Zbývá her dnes: " + remainingGames);
         this.rulesLabel = new JLabel(buildRulesText());
         this.attackButton = new JButton("Zaútočit");
         this.fightAgainButton = new JButton("Bojovat znovu");
         this.fightAgainButton.setEnabled(false);
+        this.bossButtons = new JButton[Opponent.getBossCount()];
+        for (int i = 0; i < bossButtons.length; i++) {
+            int bossNumber = i + 1;
+            bossButtons[i] = new JButton("Boss " + bossNumber + " — "
+                    + Opponent.getBossHp(bossNumber) + " HP, ~"
+                    + Opponent.getBossAttack(bossNumber) + "/"
+                    + Opponent.getBossDefense(bossNumber) + " útok/obrana");
+            bossButtons[i].setToolTipText("Odměna: +" + BOSS_WIN_XP[i] + " XP, +" + BOSS_WIN_GOLD[i] + " gold");
+        }
         startNewBattle();
         setupUi();
     }
 
-    // Vrátí HTML text s pravidly arény.
+    // pravidla bossu nahore v okne
     private String buildRulesText() {
-        
-        return "<html>Pravidla arény:<br>"
-                + "• Můžeš bojovat pouze <b>10× denně</b><br>"
-                + "• Výhra: <b>+" + WIN_XP + " XP</b>, <b>+" + WIN_GOLD + " gold</b><br>"
-                + "• Prohra: <b>-" + LOSS_XP + " XP</b>, <b>-" + LOSS_GOLD + " gold</b><br>"
-                + "• Pokud nemáš goldy: <b>2× více minus XP</b> (-" + (LOSS_XP * 2) + " XP)</html>";
+        return "<html>Pravidla bossů:<br>"
+                + "• Boss 1: <b>300 HP, ~12/3</b> | Boss 2: <b>700 HP, ~22/8</b> | Boss 3: <b>1500 HP, ~38/15</b> (útok/obrana ± offset)<br>"
+                + "• Odměny: Boss 1 <b>+250 XP, +150 gold</b> | Boss 2 <b>+600 XP, +400 gold</b> | Boss 3 <b>+1200 XP, +800 gold</b><br>"
+                + "• Prohra: <b>-" + LOSS_XP + " XP</b>, <b>-" + LOSS_GOLD + " gold</b></html>";
     }
 
-    // Sestaví a vykreslí okno arény.
+    // posklada a vykresli okno
     private void setupUi() {
-        frame.setSize(560, 520);
+        frame.setSize(640, 680);
+        frame.setMinimumSize(new Dimension(640, 680));
         frame.setLocationRelativeTo(null);
         frame.setLayout(new BorderLayout());
         UiTheme.applyToFrame(frame);
@@ -72,7 +76,7 @@ public class ArenaWindow {
         JPanel contentPanel = UiTheme.createCardPanel(null);
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
 
-        JLabel titleLabel = UiTheme.createTitleLabel("Souboj v aréně");
+        JLabel titleLabel = UiTheme.createTitleLabel("Souboj s bossem");
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         contentPanel.add(titleLabel);
         contentPanel.add(Box.createVerticalStrut(8));
@@ -83,10 +87,23 @@ public class ArenaWindow {
         contentPanel.add(rulesLabel);
         contentPanel.add(Box.createVerticalStrut(10));
 
-        remainingGamesLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        remainingGamesLabel.setForeground(UiTheme.TEXT);
-        remainingGamesLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        contentPanel.add(remainingGamesLabel);
+        contentPanel.add(UiTheme.createSectionLabel("Vyber bosse:"));
+        contentPanel.add(Box.createVerticalStrut(6));
+
+        JPanel bossPanel = new JPanel();
+        bossPanel.setLayout(new BoxLayout(bossPanel, BoxLayout.Y_AXIS));
+        bossPanel.setOpaque(false);
+        bossPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        for (int i = 0; i < bossButtons.length; i++) {
+            int bossNumber = i + 1;
+            UiTheme.styleSecondaryButton(bossButtons[i]);
+            bossButtons[i].setAlignmentX(Component.LEFT_ALIGNMENT);
+            bossButtons[i].setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+            bossButtons[i].addActionListener(e -> selectBoss(bossNumber));
+            bossPanel.add(bossButtons[i]);
+            bossPanel.add(Box.createVerticalStrut(6));
+        }
+        contentPanel.add(bossPanel);
         contentPanel.add(Box.createVerticalStrut(12));
 
         contentPanel.add(UiTheme.createSectionLabel("Tvoje statistiky:"));
@@ -97,7 +114,7 @@ public class ArenaWindow {
         contentPanel.add(playerStatsLabel);
         contentPanel.add(Box.createVerticalStrut(10));
 
-        contentPanel.add(UiTheme.createSectionLabel("Soupeř:"));
+        contentPanel.add(UiTheme.createSectionLabel("Boss:"));
         contentPanel.add(Box.createVerticalStrut(4));
         opponentStatsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         opponentStatsLabel.setForeground(UiTheme.TEXT);
@@ -113,7 +130,7 @@ public class ArenaWindow {
         contentPanel.add(Box.createVerticalStrut(14));
 
         attackButton.addActionListener(e -> playerAttackTurn());
-        fightAgainButton.addActionListener(e -> fightAgain());
+        fightAgainButton.addActionListener(e -> startNewBattle());
         UiTheme.stylePrimaryButton(attackButton);
         UiTheme.styleSecondaryButton(fightAgainButton);
         attackButton.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -127,38 +144,56 @@ public class ArenaWindow {
         wrapper.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         wrapper.add(contentPanel, BorderLayout.CENTER);
         frame.add(wrapper, BorderLayout.CENTER);
+
+        updateBossButtonStyles();
     }
 
-    // Resetuje souboj – plné HP a nový soupeř.
+    // prepne na jinyho bossa
+    private void selectBoss(int bossNumber) {
+        if (battleFinished || !attackButton.isEnabled()) {
+            selectedBoss = bossNumber;
+            updateBossButtonStyles();
+            startNewBattle();
+            return;
+        }
+
+        int choice = JOptionPane.showConfirmDialog(
+                frame,
+                "Opravdu chceš změnit bosse? Probíhající souboj se zruší.",
+                "Změna bosse",
+                JOptionPane.YES_NO_OPTION
+        );
+        if (choice != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        selectedBoss = bossNumber;
+        updateBossButtonStyles();
+        startNewBattle();
+    }
+
+    private void updateBossButtonStyles() {
+        for (int i = 0; i < bossButtons.length; i++) {
+            if (i + 1 == selectedBoss) {
+                UiTheme.stylePrimaryButton(bossButtons[i]);
+            } else {
+                UiTheme.styleSecondaryButton(bossButtons[i]);
+            }
+        }
+    }
+
+    // nova bitva, plne HP
     private void startNewBattle() {
         playerCurrentHp = playerMaxHp;
         battleFinished = false;
         attackButton.setEnabled(true);
         fightAgainButton.setEnabled(false);
-        opponent.resetOpponent(playerMaxHp);
-        battleLogLabel.setText("Souboj začíná. Klikni na Zaútočit.");
+        opponent.resetAsBoss(selectedBoss);
+        battleLogLabel.setText("Souboj s " + opponent.getName() + " začíná. Klikni na Zaútočit.");
         refreshStats();
     }
 
-    // Zahájí další hru, pokud hráč nemá vyčerpaný denní limit.
-    private void fightAgain() {
-        int remaining = consumeArenaGame.getAsInt();
-        if (remaining < 0) {
-            JOptionPane.showMessageDialog(
-                    frame,
-                    "Dnes už jsi odehrál maximálně 10 her v aréně.",
-                    "Denní limit arény",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-            fightAgainButton.setEnabled(false);
-            return;
-        }
-
-        remainingGamesLabel.setText("Zbývá her dnes: " + remaining);
-        startNewBattle();
-    }
-
-    // Jeden tah – hráč útočí, pak soupeř vrátí úder.
+    // utok hrace, pak boss protitutok
     private void playerAttackTurn() {
         if (battleFinished) {
             return;
@@ -178,7 +213,7 @@ public class ArenaWindow {
         int damageToPlayer = calculateDamage(opponent.getAttack(), playerDefense);
         playerCurrentHp = Math.max(0, playerCurrentHp - damageToPlayer);
         battleLogLabel.setText(
-                "Zasadil jsi " + damageToOpponent + " poškození. Soupeř ti vrátil " + damageToPlayer + " poškození."
+                "Zasadil jsi " + damageToOpponent + " poškození. Boss ti vrátil " + damageToPlayer + " poškození."
         );
         refreshStats();
 
@@ -187,26 +222,28 @@ public class ArenaWindow {
         }
     }
 
-    // Spočítá poškození: útok minus obrana, minimum 1.
+ //utok minus obrana, minimum 1
     private int calculateDamage(int attack, int defense) {
         return Math.max(1, attack - defense);
     }
 
-    // Ukončí souboj a přidá odměnu nebo trest.
+    // ukonci souboj, da odmenu nebo minus
     private void finishBattle(boolean playerWon) {
         battleFinished = true;
         attackButton.setEnabled(false);
         fightAgainButton.setEnabled(true);
 
         if (playerWon) {
-            player.addGold(WIN_GOLD);
-            player.addXp(WIN_XP);
+            int winXp = BOSS_WIN_XP[selectedBoss - 1];
+            int winGold = BOSS_WIN_GOLD[selectedBoss - 1];
+            player.addGold(winGold);
+            player.addXp(winXp);
             if (onPlayerChanged != null) {
                 onPlayerChanged.run();
             }
             JOptionPane.showMessageDialog(
                     frame,
-                    "Vyhrál jsi! +" + WIN_XP + " XP, +" + WIN_GOLD + " gold",
+                    "Porazil jsi " + opponent.getName() + "! +" + winXp + " XP, +" + winGold + " gold",
                     "Vítězství",
                     JOptionPane.INFORMATION_MESSAGE
             );
@@ -218,7 +255,7 @@ public class ArenaWindow {
         }
     }
 
-    // Odebere XP a gold po prohře. Bez goldu je dvojnásobná ztráta XP.
+// odebere xp a gold po prohre, bez goldu 2x vic minus
     private void applyLossPenalty() {
         boolean noGold = player.getGold() <= 0;
         int xpLoss = noGold ? LOSS_XP * 2 : LOSS_XP;
@@ -243,7 +280,7 @@ public class ArenaWindow {
         );
     }
 
-    // Aktualizuje text se staty hráče a soupeře.
+    // aktualizuje staty hrace a bosse
     private void refreshStats() {
         playerStatsLabel.setText(
                 "Útok: " + playerAttack + "  |  Obrana: " + playerDefense
@@ -252,7 +289,6 @@ public class ArenaWindow {
         opponentStatsLabel.setText(opponent.getName() + " — " + opponent.getStatsText());
     }
 
-    // Zobrazí okno arény.
     public void showWindow() {
         frame.setVisible(true);
     }

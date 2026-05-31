@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+// Ukládá a načítá hru do souboru save.dat.
 public class SaveManager {
     private static final String SAVE_DIR_NAME = "HabitsGame";
     private static final String SAVE_FILE_NAME = "save.dat";
@@ -13,6 +14,7 @@ public class SaveManager {
     private SaveManager() {
     }
 
+    // Zapíše stav hry do souboru.
     public static void save(GameSaveData data) {
         if (data == null) {
             return;
@@ -31,6 +33,7 @@ public class SaveManager {
         }
     }
 
+    // Načte hru ze souboru, nebo vrátí null pokud soubor neexistuje.
     public static GameSaveData load() {
         File saveFile = getSaveFile();
         if (!saveFile.exists()) {
@@ -48,6 +51,7 @@ public class SaveManager {
         return null;
     }
 
+    // Vrátí cestu k souboru save.dat v domovské složce uživatele.
     private static File getSaveFile() {
         String userHome = System.getProperty("user.home");
         return new File(userHome, SAVE_DIR_NAME + File.separator + SAVE_FILE_NAME);
