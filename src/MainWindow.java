@@ -1,8 +1,14 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+//ukládání
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+//konec ukládání
 import java.util.Map;
 
 public class MainWindow {
@@ -14,6 +20,15 @@ public class MainWindow {
     private final Map<String, Integer> dailyProgressMap;
     private LocalDate progressDate;
 
+    private JLabel rankLabel;
+    private JLabel levelLabel;
+    private JLabel xpLabel;
+    private JLabel goldLabel;
+    private JLabel questLabel;
+    private JLabel activityRuleLabel;
+    private JLabel dailyProgressLabel;
+    private JList<String> questList;
+
     public MainWindow(Player player) {
         this.player = player;
         this.frame = new JFrame("HabitsGame");
@@ -22,12 +37,16 @@ public class MainWindow {
         this.activitySettingsMap = new HashMap<>();
         this.dailyProgressMap = new HashMap<>();
         this.progressDate = LocalDate.now();
-        this.activityModel.addElement("Pití vody");
-        this.activitySettingsMap.put("Pití vody", new ActivitySettings("1 litr", 5));
-        this.activitySettingsMap.put("Čtení", new ActivitySettings("1 kapitola", 30));
-        this.activitySettingsMap.put("Běhání", new ActivitySettings("1 km", 42));
-        this.activitySettingsMap.put("Cvičení", new ActivitySettings("10 minut", 30));
+        initPredefinedActivitySettings();
+        activityModel.addElement("Pití vody");
         setupUi();
+    }
+
+    private void initPredefinedActivitySettings() {
+        activitySettingsMap.put("Pití vody", new ActivitySettings("1 litr", 5));
+        activitySettingsMap.put("Čtení", new ActivitySettings("1 kapitola", 30));
+        activitySettingsMap.put("Běhání", new ActivitySettings("1 km", 42));
+        activitySettingsMap.put("Cvičení", new ActivitySettings("10 minut", 30));
     }
 
     private void setupUi() {
@@ -40,11 +59,11 @@ public class MainWindow {
         topPanel.setLayout(new GridLayout(1, 4, 20, 0));
         topPanel.setBorder(BorderFactory.createEmptyBorder(12, 10, 6, 10));
         topPanel.setPreferredSize(new Dimension(760, 70));
-        JLabel rankLabel = new JLabel("Rank: " + player.getRank(), SwingConstants.LEFT);
+        rankLabel = new JLabel("Rank: " + player.getRank(), SwingConstants.LEFT);
         rankLabel.setFont(new Font("Arial", Font.BOLD, 17));
-        JLabel levelLabel = new JLabel("Level: " + player.getLevel(), SwingConstants.CENTER);
-        JLabel xpLabel = new JLabel("XP: " + player.getXp(), SwingConstants.CENTER);
-        JLabel goldLabel = new JLabel("Gold: " + player.getGold(), SwingConstants.CENTER);
+        levelLabel = new JLabel("Level: " + player.getLevel(), SwingConstants.CENTER);
+        xpLabel = new JLabel("XP: " + player.getXp(), SwingConstants.CENTER);
+        goldLabel = new JLabel("Gold: " + player.getGold(), SwingConstants.CENTER);
         rankLabel.setFont(new Font("Dialog", Font.BOLD, 17));
         levelLabel.setFont(new Font("Segoe UI", Font.BOLD, 17));
         xpLabel.setFont(new Font("Segoe UI", Font.BOLD, 17));
@@ -61,11 +80,11 @@ public class MainWindow {
 
         JPanel middlePanel = new JPanel(new BorderLayout(10, 10));
         middlePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        JLabel questLabel = new JLabel("Aktuální aktivita: Pití vody");
-        JLabel activityRuleLabel = new JLabel();
-        JLabel dailyProgressLabel = new JLabel();
+        questLabel = new JLabel("Aktuální aktivita: Pití vody");
+        activityRuleLabel = new JLabel();
+        dailyProgressLabel = new JLabel();
         JLabel chooseQuestLabel = new JLabel("Vyber aktivitu k plnění:");
-        JList<String> questList = new JList<>(activityModel);
+        questList = new JList<>(activityModel);
         questList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         questList.setVisibleRowCount(8);
         questList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
@@ -158,13 +177,141 @@ public class MainWindow {
         bottomPanel.add(actionPanel, BorderLayout.WEST);
         bottomPanel.add(manageActivitiesButton, BorderLayout.EAST);
 
+        JButton shopButton = new JButton("Obchod");
+        shopButton.addActionListener(e -> {
+            ShopWindow shopWindow = new ShopWindow(player, () -> goldLabel.setText("Gold: " + player.getGold()));
+            shopWindow.showWindow();
+        });
+
+        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 8));
+        footerPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
+        footerPanel.add(shopButton);
+
         middlePanel.add(headerPanel, BorderLayout.NORTH);
         middlePanel.add(questListScrollPane, BorderLayout.CENTER);
         middlePanel.add(bottomPanel, BorderLayout.SOUTH);
 
         frame.add(topPanel, BorderLayout.NORTH);
         frame.add(middlePanel, BorderLayout.CENTER);
+        frame.add(footerPanel, BorderLayout.SOUTH);
+
+        //ukládání
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                SaveManager.save(collectSaveData());
+            }
+        });
+        //konec ukládání
     }
+
+    //ukládání
+    public GameSaveData collectSaveData() {
+        List<String> activeActivities = new ArrayList<>();
+        for (int i = 0; i < activityModel.getSize(); i++) {
+            activeActivities.add(activityModel.getElementAt(i));
+        }
+
+        List<CustomActivityData> customActivities = new ArrayList<>();
+        for (int i = 0; i < customActivityModel.size(); i++) {
+            String name = customActivityModel.getElementAt(i);
+            ActivitySettings settings = activitySettingsMap.get(name);
+            if (settings != null) {
+                customActivities.add(new CustomActivityData(
+                        name,
+                        settings.getUnitLabel(),
+                        settings.getDailyTarget()
+                ));
+            }
+        }
+
+        return new GameSaveData(
+                player.getLevel(),
+                player.getXp(),
+                player.getGold(),
+                new HashMap<>(player.getInventorySnapshot()),
+                activeActivities,
+                customActivities,
+                new HashMap<>(dailyProgressMap),
+                progressDate.toString()
+        );
+    }
+
+    public void applySaveData(GameSaveData save) {
+        if (save == null) {
+            return;
+        }
+
+        player.loadFromSave(
+                save.getLevel(),
+                save.getXp(),
+                save.getGold(),
+                save.getInventory()
+        );
+
+        activityModel.removeAllElements();
+        customActivityModel.clear();
+        activitySettingsMap.clear();
+        dailyProgressMap.clear();
+        initPredefinedActivitySettings();
+
+        for (CustomActivityData custom : save.getCustomActivities()) {
+            customActivityModel.addElement(custom.getName());
+            activitySettingsMap.put(
+                    custom.getName(),
+                    new ActivitySettings(custom.getUnitLabel(), custom.getDailyTarget())
+            );
+        }
+
+        for (String activity : save.getActiveActivities()) {
+            if (!isActivityInModel(activity)) {
+                activityModel.addElement(activity);
+            }
+        }
+
+        if (activityModel.getSize() == 0) {
+            activityModel.addElement("Pití vody");
+        }
+
+        dailyProgressMap.putAll(save.getDailyProgress());
+        try {
+            progressDate = LocalDate.parse(save.getProgressDate());
+        } catch (Exception e) {
+            progressDate = LocalDate.now();
+        }
+        resetDailyProgressIfNeeded();
+
+        refreshPlayerLabels();
+        if (questList != null && activityModel.getSize() > 0) {
+            questList.setSelectedIndex(0);
+            String selected = questList.getSelectedValue();
+            if (selected != null) {
+                questLabel.setText("Aktuální aktivita: " + formatActivityDisplay(selected));
+                updateActivityInfo(selected, activityRuleLabel, dailyProgressLabel);
+            }
+        }
+    }
+
+    private boolean isActivityInModel(String activity) {
+        for (int i = 0; i < activityModel.getSize(); i++) {
+            if (activityModel.getElementAt(i).equalsIgnoreCase(activity)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void refreshPlayerLabels() {
+        if (rankLabel == null) {
+            return;
+        }
+        rankLabel.setText("Rank: " + player.getRank());
+        rankLabel.setToolTipText("Rank: " + player.getRank());
+        levelLabel.setText("Level: " + player.getLevel());
+        xpLabel.setText("XP: " + player.getXp());
+        goldLabel.setText("Gold: " + player.getGold());
+    }
+    //konec ukládání
 
     public void showWindow() {
         frame.setVisible(true);
